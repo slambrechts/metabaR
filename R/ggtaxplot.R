@@ -38,7 +38,7 @@
 #'
 #' ## show only taxonomic labels if taxon has a relative abundance > 1e-3
 #' ggtaxplot(soil_euk, "path", sep.level = ":", sep.info = "@", thresh = 1e-3)
-#' 
+#'
 #'}
 #'
 #' ## run on a particular clade e.g. here arthropoda, otherwise difficult to read
@@ -120,8 +120,8 @@ ggtaxplot <- function(metabarlist, taxo, sep.level, sep.info, thresh = NULL) {
 
     # Rename nodes with kid names
     igraph::V(g)$name2 <- ifelse(igraph::V(g)$name %in% edgelist[, "parent"],
-      igraph::V(g)$name,
-      edgelist[match(igraph::V(g)$name, edgelist[, "kidfull"]), "kid"]
+                                 igraph::V(g)$name,
+                                 edgelist[match(igraph::V(g)$name, edgelist[, "kidfull"]), "kid"]
     )
 
 
@@ -131,7 +131,7 @@ ggtaxplot <- function(metabarlist, taxo, sep.level, sep.info, thresh = NULL) {
     metabarlist$motus$count <- colSums(metabarlist$reads)
     igraph::V(g)$reads <-
       sapply(V(g)$name, function(x) sum(metabarlist$motus$count[grep(x, path, fixed = T)])) /
-        sum(metabarlist$reads)
+      sum(metabarlist$reads)
 
     # plots
 
@@ -141,6 +141,9 @@ ggtaxplot <- function(metabarlist, taxo, sep.level, sep.info, thresh = NULL) {
     vdf <- data.frame(as.data.frame(get.vertex.attribute(g)), coords)
     vdf <- vdf[which(vdf$motus != 0), ]
 
+    # Add more space between bullet points (nodes)
+    vdf$x <- vdf$x * 3  # Adjust the multiplier as needed to increase the space
+
     # add segments
     edf <- get.data.frame(g)
 
@@ -149,32 +152,38 @@ ggtaxplot <- function(metabarlist, taxo, sep.level, sep.info, thresh = NULL) {
     edf$to.x <- vdf$x[match(edf$to, as.vector(vdf$name))]
     edf$to.y <- vdf$y[match(edf$to, as.vector(vdf$name))]
 
-    gp <-
-      ggplot(data = vdf, aes(x = .data$x, y = .data$y,
-                             size = .data$motus * 100, colour = .data$reads * 100)) +
+    gp <- ggplot(data = vdf, aes(x = .data$x, y = .data$y,
+                                 size = .data$motus * 100, colour = .data$reads * 100)) +
       geom_segment(
         data = edf,
         aes(
           x = .data$from.x, xend = .data$to.x,
           y = .data$from.y, yend = .data$to.y
-        ), size = 0.2, colour = "grey"
+        ), size = 0.5, colour = "grey"
       ) +
       geom_point() +
+      ylim(-1.5, 5) +
+      xlim(-60, 210) +
       scale_color_viridis_c() +
       theme_void() +
-      theme(legend.position = "bottom",
-            legend.direction = "horizontal") +
+      theme(
+        legend.position = "right",
+        legend.direction = "vertical",
+        axis.text.x = element_blank(),  # Remove x-axis text
+        plot.margin = margin(1, 2, 2, 2, "cm")  # Increase the plot margins as needed
+      ) +
       labs(color = "%reads", size = "%motus")
 
     if (is.null(thresh)) {
       gp <- gp + geom_text(aes(label = .data$name2),
                            color = "darkgrey", show.legend = FALSE,
-                           angle = 45, hjust = 1)
+                           size = 3, angle = 45, hjust = 1)
     } else {
       gp <- gp + geom_text(
         data = vdf[which(vdf$reads > thresh), ], aes(label = .data$name2),
         color = "darkgrey", show.legend = FALSE,
-        angle = 45, hjust = 1)
+        size = 3, angle = 45, hjust = 1
+      )
     }
 
     return(gp)
